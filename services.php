@@ -24,3 +24,15 @@ function creerWallet(&$wallets, $client, $telephone, $code, $solde) {
     ajouterWallet($wallets, [$client, $telephone, $code, $solde]);
     return "Wallet créé avec succès pour $client !";
 }
+function faireDepot(&$wallets, &$transactions, $telephone, $montant) {
+    $index = trouverWallet($wallets, $telephone);
+    if ($index === -1) {
+        return "Aucun wallet trouvé pour ce numéro !";
+    }
+    if ($montant <= 0) {
+        return "Le montant doit être strictement positif !";
+    }
+    mettreAJourSolde($wallets, $index, $montant);
+    ajouterTransaction($transactions, ["Dépôt", $telephone, $montant, 0]);
+    return "Dépôt de {$montant} CFA effectué !\nNouveau solde : {$wallets[$index][3]} CFA";
+}
