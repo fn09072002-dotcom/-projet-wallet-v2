@@ -64,22 +64,31 @@ function faireRetrait(&$wallets, &$transactions, $telephone, $montant) {
     ajouterTransaction($transactions, ["Retrait", $telephone, $montant, $frais]);
     return "Retrait de {$montant} CFA effectué !\nFrais : {$frais} CFA\nTotal débité : {$totalDebite} CFA\nNouveau solde : {$wallets[$index][3]} CFA";
 }
-
 function listerTransactions($transactions, $telephone = null) {
     if (empty($transactions)) {
         return "Aucune transaction enregistrée !";
     }
 
+    if ($telephone !== null) {
+        $transactions = array_filter($transactions, function($t) use ($telephone) {
+            return $t[1] === $telephone;
+        });
+    }
+
+    if (empty($transactions)) {
+        return "Aucune transaction trouvée pour ce numéro !";
+    }
+
     $affichage = "\n=== Historique des Transactions ===\n";
-    foreach ($transactions as $i => $transaction) {
-        if ($telephone !== null && $transaction[1] !== $telephone) {
-            continue;
-        }
-        $affichage .= "\n-- Transaction " . ($i + 1) . " --\n";
+    $i = 1;
+    array_map(function($transaction) use (&$affichage, &$i) {
+        $affichage .= "\n-- Transaction {$i} --\n";
         $affichage .= "Type      : {$transaction[0]}\n";
         $affichage .= "Téléphone : {$transaction[1]}\n";
         $affichage .= "Montant   : {$transaction[2]} CFA\n";
         $affichage .= "Frais     : {$transaction[3]} CFA\n";
-    }
+        $i++;
+    }, $transactions);
+
     return $affichage;
 }
