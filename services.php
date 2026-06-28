@@ -1,94 +1,99 @@
 <?php
+namespace Wallet\Services;
+
 require 'validator.php';
 require 'repository.php';
 
-function creerWallet(&$wallets, $client, $telephone, $code, $solde) {
+function creerWallet(array &$wallets, string $client, string $telephone, string $code, float $solde): string {
     if (empty($client) || empty($telephone) || empty($code)) {
         return "Tous les champs sont obligatoires !";
     }
-    if (!validerLongueur($telephone, 9)) {
+    if (!\Wallet\Validator\validerLongueur($telephone, 9)) {
         return "Le téléphone doit avoir exactement 9 chiffres !";
     }
-    if (!validerPrefixe($telephone)) {
+    if (!\Wallet\Validator\validerPrefixe($telephone)) {
         return "Format téléphone invalide !";
     }
-    if (!validerLongueur($code, 4)) {
+    if (!\Wallet\Validator\validerLongueur($code, 4)) {
         return "Le code doit avoir exactement 4 caractères !";
     }
-    if (!validerSolde($solde)) {
+    if (!\Wallet\Validator\validerSolde($solde)) {
         return "Le solde initial doit être positif ou nul !";
     }
-    $unicite = validerUnicite($wallets, $telephone, $code);
+
+    $unicite = \Wallet\Validator\validerUnicite($wallets, $telephone, $code);
     if ($unicite === 2) return "Ce numéro existe déjà !";
     if ($unicite === 3) return "Ce code existe déjà !";
-    ajouterWallet($wallets, [$client, $telephone, $code, $solde]);
+
+    \Wallet\Repository\ajouterWallet($wallets, [$client, $telephone, $code, $solde]);
     return "Wallet créé avec succès pour $client !";
 }
-function faireDepot(&$wallets, &$transactions, $telephone, $montant) {
-    $index = trouverWallet($wallets, $telephone);
+
+function faireDepot(array &$wallets, array &$transactions, string $telephone, float $montant): string {
+    $index = \Wallet\Repository\trouverWallet($wallets, $telephone);
     if ($index === -1) {
         return "Aucun wallet trouvé pour ce numéro !";
     }
     if ($montant <= 0) {
         return "Le montant doit être strictement positif !";
     }
-    mettreAJourSolde($wallets, $index, $montant);
-    ajouterTransaction($transactions, ["Dépôt", $telephone, $montant, 0]);
+    \Wallet\Repository\mettreAJourSolde($wallets, $index, $montant);
+    \Wallet\Repository\ajouterTransaction($transactions, ["Dépôt", $telephone, $montant, 0]);
     return "Dépôt de {$montant} CFA effectué !\nNouveau solde : {$wallets[$index][3]} CFA";
 }
-function calculerFrais($montant) {
+
+function calculerFrais(float $montant): float {
     if ($montant <= 10000) {
         return 200;
     } elseif ($montant <= 100000) {
         return 500;
     } else {
-        $frais = $montant * 0.01;
-        return $frais > 5000 ? 5000 : $frais;
+        return min($montant * 0.01, 5000);
     }
 }
 
-function faireRetrait(&$wallets, &$transactions, $telephone, $montant) {
-    $index = trouverWallet($wallets, $telephone);
+function faireRetrait(array &$wallets, array &$transactions, string $telephone, float $montant): string {
+    $index = \Wallet\Repository\trouverWallet($wallets, $telephone);
     if ($index === -1) {
         return "Aucun wallet trouvé pour ce numéro !";
     }
     if ($montant <= 0) {
         return "Le montant doit être strictement positif !";
     }
-    $frais = calculerFrais($montant);
+    $frais       = calculerFrais($montant);
     $totalDebite = $montant + $frais;
     if ($wallets[$index][3] < $totalDebite) {
         return "Solde insuffisant !\nSolde actuel : {$wallets[$index][3]} CFA\nTotal à débiter : {$totalDebite} CFA";
     }
-    mettreAJourSolde($wallets, $index, -$totalDebite);
-    ajouterTransaction($transactions, ["Retrait", $telephone, $montant, $frais]);
+    \Wallet\Repository\mettreAJourSolde($wallets, $index, -$totalDebite);
+    \Wallet\Repository\ajouterTransaction($transactions, ["Retrait", $telephone, $montant, $frais]);
     return "Retrait de {$montant} CFA effectué !\nFrais : {$frais} CFA\nTotal débité : {$totalDebite} CFA\nNouveau solde : {$wallets[$index][3]} CFA";
 }
-function listerTransactions($transactions, $telephone = null) {
+
+function listerTransactions(array $transactions, ?string $telephone = null): string {
     if (empty($transactions)) {
         return "Aucune transaction enregistrée !";
     }
 
     if ($telephone !== null) {
-        $transactions = array_filter($transactions, function($t) use ($telephone) {
-            return $t[1] === $telephone;
-        });
+        $transactions = array_values(
+            array_filter($transactions, fn($t) => $t[1] === $telephone)
+        );
     }
 
     if (empty($transactions)) {
         return "Aucune transaction trouvée pour ce numéro !";
     }
 
-    $affichage = "\n=== Historique des Transactions ===\n";
-    $i = 1;
-    array_map(function($transaction) use (&$affichage, &$i) {
-        $affichage .= "\n-- Transaction {$i} --\n";
-        $affichage .= "Type      : {$transaction[0]}\n";
-        $affichage .= "Téléphone : {$transaction[1]}\n";
-        $affichage .= "Montant   : {$transaction[2]} CFA\n";
-        $affichage .= "Frais     : {$transaction[3]} CFA\n";
-        $i++;
-    }, $transactions);
+    $lignes = array_map(function($t, $i) {
+        return implode("\n", [
+            "\n-- Transaction " . ($i + 1) . " --",
+            "Type      : {$t[0]}",
+            "Téléphone : {$t[1]}",
+            "Montant   : {$t[2]} CFA",
+            "Frais     : {$t[3]} CFA",
+        ]);
+    }, $transactions, array_keys($transactions));
 
-    return $affichage;
+    return "\n=== Historique des Transactions ===\n" . implode("\n", $lignes);
 }
