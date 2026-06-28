@@ -19,7 +19,12 @@ function traiterChoix($choix, &$wallets, &$transactions) {
             $solde     = (float)readline("Solde initial : ");
             echo creerWallet($wallets, $client, $telephone, $code, $solde) . "\n";
             break;
-        case "2": break;
+        
+        case "2":
+            $telephone = readline("Numéro de téléphone : ");
+            $montant   = (float)readline("Montant : ");
+            echo faireDepot($wallets, $transactions, $telephone, $montant) . "\n";
+             break;
         case "3": break;
         case "4": break;
         case "0": echo "Au revoir !\n"; break;
