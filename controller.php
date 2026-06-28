@@ -25,7 +25,11 @@ function traiterChoix($choix, &$wallets, &$transactions) {
             $montant   = (float)readline("Montant : ");
             echo faireDepot($wallets, $transactions, $telephone, $montant) . "\n";
              break;
-        case "3": break;
+        case "3":
+            $telephone = readline("Numéro de téléphone : ");
+            $montant   = (float)readline("Montant : ");
+            echo faireRetrait($wallets, $transactions, $telephone, $montant) . "\n";
+            break;
         case "4": break;
         case "0": echo "Au revoir !\n"; break;
         default: echo "Choix invalide, veuillez réessayer\n";
