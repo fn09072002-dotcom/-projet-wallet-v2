@@ -1,0 +1,28 @@
+<?php
+require 'services.php';
+
+function afficherMenu() {
+    echo "\n** Menu Distributeur **\n";
+    echo "1 - Créer Wallet\n";
+    echo "2 - Faire Dépôt\n";
+    echo "3 - Faire Retrait\n";
+    echo "4 - Lister les Transactions\n";
+    echo "0 - Quitter\n";
+}
+
+function traiterChoix($choix, &$wallets, &$transactions) {
+    switch ($choix) {
+        case "1":
+            $client    = readline("Nom du client : ");
+            $telephone = readline("Numéro de téléphone : ");
+            $code      = readline("Code secret : ");
+            $solde     = (float)readline("Solde initial : ");
+            echo creerWallet($wallets, $client, $telephone, $code, $solde) . "\n";
+            break;
+        case "2": break;
+        case "3": break;
+        case "4": break;
+        case "0": echo "Au revoir !\n"; break;
+        default: echo "Choix invalide, veuillez réessayer\n";
+    }
+}
