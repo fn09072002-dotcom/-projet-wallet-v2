@@ -36,3 +36,31 @@ function faireDepot(&$wallets, &$transactions, $telephone, $montant) {
     ajouterTransaction($transactions, ["Dépôt", $telephone, $montant, 0]);
     return "Dépôt de {$montant} CFA effectué !\nNouveau solde : {$wallets[$index][3]} CFA";
 }
+function calculerFrais($montant) {
+    if ($montant <= 10000) {
+        return 200;
+    } elseif ($montant <= 100000) {
+        return 500;
+    } else {
+        $frais = $montant * 0.01;
+        return $frais > 5000 ? 5000 : $frais;
+    }
+}
+
+function faireRetrait(&$wallets, &$transactions, $telephone, $montant) {
+    $index = trouverWallet($wallets, $telephone);
+    if ($index === -1) {
+        return "Aucun wallet trouvé pour ce numéro !";
+    }
+    if ($montant <= 0) {
+        return "Le montant doit être strictement positif !";
+    }
+    $frais = calculerFrais($montant);
+    $totalDebite = $montant + $frais;
+    if ($wallets[$index][3] < $totalDebite) {
+        return "Solde insuffisant !\nSolde actuel : {$wallets[$index][3]} CFA\nTotal à débiter : {$totalDebite} CFA";
+    }
+    mettreAJourSolde($wallets, $index, -$totalDebite);
+    ajouterTransaction($transactions, ["Retrait", $telephone, $montant, $frais]);
+    return "Retrait de {$montant} CFA effectué !\nFrais : {$frais} CFA\nTotal débité : {$totalDebite} CFA\nNouveau solde : {$wallets[$index][3]} CFA";
+}
